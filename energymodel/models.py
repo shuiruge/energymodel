@@ -1,7 +1,7 @@
 import abc
 import tensorflow as tf
 from typing import List
-from .utils import nabla, clip_value
+from .utils import nabla
 from .sde import SDE
 
 
@@ -32,8 +32,7 @@ class EnergyModel:
                t,
                dt,
                T=None,
-               params=None,
-               clip_gradient=None):
+               params=None):
     """
     Args:
       network: The neural network for x -> -E(x), where E is the energy.
@@ -48,7 +47,6 @@ class EnergyModel:
       dt: Time step.
       T: The "temperature". Defaults to autmatically determined value.
       params: The parameters. Defaults to the `network.trainable_variables`.
-      clip_gradient: Clipe the ∇E, just for safty.
     """
     self.network = network
     self.fantasy_particles = tf.Variable(
@@ -57,12 +55,9 @@ class EnergyModel:
     self.t = tf.Variable(t, trainable=False, dtype='float32')
     self.dt = tf.Variable(dt, trainable=False, dtype='float32')
     self.params = params if params else network.trainable_variables
-    self.clip_gradient = clip_gradient
 
     # x -> -∇E(x)
     self.vector_field = nabla(self.network)
-    if self.clip_gradient is not None:
-      self.vector_field = clip_value(self.vector_field, self.clip_gradient)
 
     if T is not None:
       self.T = tf.convert_to_tensor(T, dtype='float32')
