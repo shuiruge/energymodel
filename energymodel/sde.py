@@ -1,12 +1,10 @@
 import tensorflow as tf
+from .utils import nest_map
 
 
+@nest_map
 def random_seed(x, stddev):
-
-  def sample(x):
-    return tf.random.truncated_normal(tf.shape(x), 0., stddev)
-
-  return tf.nest.map_structure(sample, x)
+  return tf.random.truncated_normal(tf.shape(x), 0., stddev)
 
 
 class SDE:
@@ -48,6 +46,11 @@ class SDE:
     Returns:
         The evolved value x(t1). The same type as `x0`.
     """
+
+    @nest_map
+    def euler_step(x, f, dt, dW):
+      return x + f*dt + dW
+
     x = x0
     s = t0
     while tf.less(s, t1):
@@ -56,6 +59,6 @@ class SDE:
       seed = random_seed(x, tf.sqrt(dt))
       dW = self.cholesky(x, s, seed)
 
-      x = tf.nest.map_structure(lambda x: x + f*dt + dW, x)
+      x = euler_step(x, f, dt, dW)
       s += dt
     return x

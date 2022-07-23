@@ -1,20 +1,19 @@
-import abc
 import tensorflow as tf
-from typing import List
-from .utils import nabla
 from .sde import SDE
+from .utils import nest_map
 
 
-class Callback(abc.ABC):
-  """Defines the abstract callback API."""
+class Callback:
+  """Defines the abstract callback API.
 
-  @abc.abstractmethod
-  def __call__(self,
-               step: tf.Tensor,
-               batch: tf.Tensor,
-               loss: tf.Tensor,
-               gradients: List[tf.Tensor]):
-    return NotImplemented
+  A callback shall implement the `__call__` method, which has arguments:
+    step: An int64 scalar for training step.
+    batch: Tensor for input batch.
+    loss: Scalar for loss value.
+    gradients: List of tensors for the gradients of model parameters.
+  and nothing to return.
+  """
+  pass
 
 
 class EnergyModel:
@@ -57,8 +56,14 @@ class EnergyModel:
     self.params = params if params else network.trainable_variables
 
     # x -> -∇E(x)
-    self.vector_field = nabla(self.network)
+    def vector_field(x):
+      with tf.GradientTape() as tape:
+        tape.watch(x)
+        # Recall network is x -> -E(x).
+        y = tf.reduce_sum(self.network(x))
+        return tape.gradient(y, x, unconnected_gradients='zero')
 
+    # Determine self.T
     if T is not None:
       self.T = tf.convert_to_tensor(T, dtype='float32')
     else:
@@ -68,14 +73,19 @@ class EnergyModel:
       # `f(x) t ~ (2T t)^0.5 => T ~ 0.5t f^2(x)`.
       # We use 2-sigma scale as the vector field order.
       vector_field_order = 3 * tf.math.reduce_std(
-          self.vector_field(self.resample(self.fantasy_particles))
+          vector_field(self.resample(self.fantasy_particles))
       )
       self.T = 0.5 * t * vector_field_order**2
 
+    @nest_map
+    def cholesky(s):
+      return tf.sqrt(2 * self.T) * s
+
     self.sde = SDE(
-        vector_field=lambda x, t: self.vector_field(x),
-        cholesky=lambda x, t, s: tf.sqrt(2 * self.T) * s,
+        vector_field=lambda x, t: vector_field(x),
+        cholesky=lambda x, t, s: cholesky(s),
     )
+    self.vector_field = vector_field
 
   def evolve(self, x):
     t0 = tf.constant(0.)
@@ -95,6 +105,16 @@ class EnergyModel:
     )
 
   def get_optimize_fn(self, optimizer, callbacks=None):
+    """Returns a function for step by step training.
+
+    Args:
+      optimizer: An `tf.optimizers.Optimizer` object.
+      callbacks: List of `Callback`s.
+
+    Returns:
+      A function that accepts an input batch (tensor), then train the model,
+      and returns the current training step (int64 scalar).
+    """
     callbacks = [] if callbacks is None else callbacks
     step = tf.Variable(0, trainable=False, dtype='int64')
 

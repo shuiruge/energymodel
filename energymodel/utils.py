@@ -1,5 +1,4 @@
 import tensorflow as tf
-from typing import Callable
 
 
 def random_uniform(size):
@@ -7,26 +6,42 @@ def random_uniform(size):
       shape=size, minval=-1.0, maxval=1.0, dtype='float32')
 
 
-def nabla(scalar_fn):
-  """Computes ∇f. If the input of f has multiple components, then returns a
-  list of ∇f for each component.
+def map_structure(fn, *args, **kwargs):
+  """Analogy to the `tf.nest.map_structure`, but not all `args` are nested."""
+  nest_args = [arg for arg in args if is_nest_structure(arg)]
+  if not nest_args:
+    return fn(*args, **kwargs)
+
+  def map_fn(*nest_args, **kwargs):
+    all_args = []
+    offset = 0
+    for arg in args:
+      if is_nest_structure(arg):
+        all_args.append(nest_args[offset])
+        offset += 1
+      else:
+        all_args.append(arg)
+    return fn(*all_args, **kwargs)
+
+  return tf.nest.map_structure(map_fn, *nest_args, **kwargs)
+
+
+def is_nest_structure(x):
+  return isinstance(x, (list, tuple))
+
+
+def nest_map(fn):
+  """A convenient decorator for applying `map_structure`, converting a normal
+  function to the function that accepts nested inputs.
+
+  Examples:
+  >>> fn = lambda x, y: x + y
+  >>> x = [tf.constant(1.), tf.constant(2.)]  # x is nested.
+  >>> y = tf.constant(3.)  # y is not nested.
+  >>> nest_map(fn)(x, y)  # => [(1+3), (2+3)].
   """
 
-  def nabla_fn(x):
-    with tf.GradientTape() as tape:
-      tape.watch(x)
-      y = tf.reduce_sum(scalar_fn(x))
-      return tape.gradient(y, x, unconnected_gradients='zero')
+  def decorated(*args, **kwargs):
+    return map_structure(fn, *args, **kwargs)
 
-  return nabla_fn
-
-
-def clip_value(fn, threshold):
-  threshold = tf.convert_to_tensor(threshold, dtype='float32')
-
-  def clipped_fn(x):
-    y = fn(x)
-    return tf.nest.map_structure(
-        lambda x: tf.clip_by_value(x, -threshold, threshold), y)
-
-  return clipped_fn
+  return decorated

@@ -3,8 +3,8 @@ from .sde import (
 )
 from .utils import (
     random_uniform,
-    nabla,
-    clip_value,
+    map_structure,
+    nest_map,
 )
 from .models import (
     Callback,
