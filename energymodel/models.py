@@ -8,7 +8,8 @@ class Callback:
 
   A callback shall implement the `__call__` method, which has arguments:
     step: An int64 scalar for training step.
-    batch: Tensor for input batch.
+    real_particles: Tensor for input batch.
+    fantasy_particles: Tensor for input batch.
     loss: Scalar for loss value.
     gradients: List of tensors for the gradients of model parameters.
   and nothing to return.
@@ -206,7 +207,7 @@ class EnergyModel:
         gradients = tape.gradient(loss, self.params)
 
       for callback in callbacks:
-        callback(step, batch, loss, gradients)
+        callback(step, real_particles, fantasy_particles, loss, gradients)
 
       optimizer.apply_gradients(zip(gradients, self.params))
       step.assign_add(1)
@@ -223,7 +224,7 @@ class LossMonitor(Callback):
     self.writer = writer
     self.log_steps = tf.constant(int(log_steps), dtype='int64')
 
-  def __call__(self, step, batch, loss, gradients):
+  def __call__(self, step, real_particles, fantasy_particles, loss, gradients):
     if tf.equal(step % self.log_steps, 0):
       with self.writer.as_default():
         tf.summary.scalar('loss', loss, step)
@@ -239,11 +240,11 @@ class FantasyParticleMonitor(Callback):
     self.model = model
     self.log_steps = tf.constant(int(log_steps), dtype='int64')
 
-  def __call__(self, step, batch, loss, gradients):
+  def __call__(self, step, real_particles, fantasy_particles, loss, gradients):
     if tf.equal(step % self.log_steps, 0):
       with self.writer.as_default():
-        tf.summary.histogram(
-            'fantasy_particles',
+        map_structure(
+            lambda x, step: tf.summary.histogram('fantasy_particles', x, step),
             self.model.fantasy_particles,
             step,
         )
@@ -259,17 +260,19 @@ class VectorFieldMonitor(Callback):
     self.model = model
     self.log_steps = tf.constant(int(log_steps), dtype='int64')
 
-  def __call__(self, step, batch, loss, gradients):
+  def __call__(self, step, real_particles, fantasy_particles, loss, gradients):
     if tf.equal(step % self.log_steps, 0):
       with self.writer.as_default():
-        tf.summary.histogram(
-            'vector_field/real_particles',
-            self.model.vector_field(batch),
+        map_structure(
+            lambda x, step: tf.summary.histogram(
+                'vector_field/real_particles', x, step),
+            self.model.vector_field(real_particles),
             step,
         )
-        tf.summary.histogram(
-            'vector_field/fantasy_particles',
-            self.model.vector_field(self.model.fantasy_particles),
+        map_structure(
+            lambda x, step: tf.summary.histogram(
+                'vector_field/fantasy_particles', x, step),
+            self.model.vector_field(fantasy_particles),
             step,
         )
 
@@ -284,7 +287,7 @@ class LossGradientMonitor(Callback):
     self.model = model
     self.log_steps = tf.constant(int(log_steps), dtype='int64')
 
-  def __call__(self, step, batch, loss, gradients):
+  def __call__(self, step, real_particles, fantasy_particles, loss, gradients):
     if tf.equal(step % self.log_steps, 0):
       with self.writer.as_default():
         for var, grad in zip(self.model.params, gradients):
