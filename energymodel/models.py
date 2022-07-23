@@ -24,8 +24,11 @@ def dispose_ambient(x):
 class EnergyModel:
   """The energy-model that fits empirical distributions.
 
-  The energy model is a probabilistic model, characterized by an 'energy'
-  E(x) and a 'temperature' T. That is, distribution q(x) = exp(-E(x)/T) / Z,
+  The energy model is a probabilistic model, characterized by an 'energy' E(x)
+  of 'particles' x, and a 'temperature' T. That is, distribution
+
+    q(x) = exp(-E(x)/T) / Z
+
   where Z is the normalization factor.
 
   Given a emperical distribution p, we want to minimize the KL-divergence
@@ -38,8 +41,23 @@ class EnergyModel:
   To sample from q, we employ stochastic differential equatoins (SDE), based
   on a theorem:
 
-    q(x) = exp(-E(x)/T) / Z is the stationary solution of the Fokker-Planck
-    equation induced by SDE dx = -∇E(x)*dt + dW, with dW ~ Normal(0, 2T*dt).
+    q(x) is the stationary solution of the Fokker-Planck equation induced by
+    the SDE dx = -∇E(x)*dt + dW, with dW ~ Normal(0, 2T*dt).
+
+  When the 'particles' are seperated as ambient and latent, say E(x) -> E(v,h)
+  where v for ambient and h for latent, then the derivative of KL-divergence
+  becomes
+
+    E_p(v)[E_q(h|v)[∂E/∂θ]] - E_q(v,h)[∂E/∂θ]
+
+  where
+
+    q(h|v) := exp(-E(v,h)/T) / ∫dh exp(-E(v,h)/T).
+
+  To sample from q(h|v), we employ a similar SDE, based on a similar theorem:
+
+    q(h|v) is the stationary solution of the Fokker-Planck equation induced by
+    the SDE dh = -∇ₕE(v,h)*dt + dW and dv = 0, with dW ~ Normal(0, 2T*dt).
 
   Notes:
     - Attributes `t` and `dt` are non-trainable variables, while `T` is treated
