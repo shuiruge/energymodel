@@ -3,7 +3,6 @@ from .sde import (
 )
 from .utils import (
     random_uniform,
-    assert_same_structure,
     map_structure,
     nest_map,
 )

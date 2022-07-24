@@ -6,23 +6,11 @@ def random_uniform(size):
       shape=size, minval=-1.0, maxval=1.0, dtype='float32')
 
 
-def assert_same_structure(*args):
-  """Extends the `tf.nest_assert_same_structure` to arbitrary number of
-  arguments.
-  """
-  if len(args) < 2:
-    return
-  for arg in args[1:]:
-    tf.nest.assert_same_structure(args[0], arg)
-
-
 def map_structure(fn, *args, **kwargs):
   """Analogy to the `tf.nest.map_structure`, but not all `args` are nested."""
   nest_args = [arg for arg in args if is_nest_structure(arg)]
   if not nest_args:
     return fn(*args, **kwargs)
-
-  assert_same_structure(nest_args)
 
   def map_fn(*nest_args, **kwargs):
     all_args = []
@@ -35,6 +23,7 @@ def map_structure(fn, *args, **kwargs):
         all_args.append(arg)
     return fn(*all_args, **kwargs)
 
+  # `tf.nest.map_structure` will assert same structure automatically.
   return tf.nest.map_structure(map_fn, *nest_args, **kwargs)
 
 
