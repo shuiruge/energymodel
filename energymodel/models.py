@@ -69,7 +69,6 @@ class EnergyModel:
 
   def __init__(self,
                network,
-               fantasy_particles,
                resample,
                t,
                dt,
@@ -79,13 +78,8 @@ class EnergyModel:
     """
     Args:
       network: The neural network for x -> -E(x), where E is the energy.
-      fantasy_particles: The initial value of fantasy particles.
       resample: The fantasy particles are resampled before sampling by
-        evolving SDE. For example,
-
-            resample = lambda x: random_uniform(tf.shape(x))
-
-        will randomly reset the fantasy particles before evolving SDE.
+        evolving SDE. Signature () -> particles.
       t: Time interval of SDE evolution.
       dt: Time step.
       T: The "temperature". Defaults to autmatically determined value.
@@ -94,9 +88,6 @@ class EnergyModel:
         as inputs, where ambient and latent are tensors or nested tensors.
     """
     self.network = network
-    self.fantasy_particles = map_structure(
-        lambda x: tf.Variable(x, trainable=False, dtype='float32'),
-        fantasy_particles)
     self.resample = resample
     self.t = tf.Variable(t, trainable=False, dtype='float32')
     self.dt = tf.Variable(dt, trainable=False, dtype='float32')
@@ -124,8 +115,9 @@ class EnergyModel:
       # We use 3-sigma scale as the vector field order.
       vector_field_order = map_structure(
           lambda x: 3 * tf.math.reduce_std(x),
-          vector_field(self.resample(self.fantasy_particles)),
+          vector_field(self.resample()),
       )
+      # TODO: vector_field_order may be nested, how to compute T from it?
       self.T = 0.5 * t * vector_field_order**2
 
     @nest_map
@@ -154,24 +146,21 @@ class EnergyModel:
     Returns:
       The evolution result. The same type as the `particles`.
     """
-    t0 = tf.constant(0.)
-    return self.sde.evolve(t0, self.t, self.dt, particles)
+    return self.sde.evolve(tf.constant(0.), self.t, self.dt, particles)
 
   def evolve_real(self, batch):
     if not self.use_latent:
       return batch
 
     # Initialize the latent particles from the resampled fantasy_particles.
-    _, latent = self.resample(self.fantasy_particles)
+    _, latent = self.resample()
     particles = [batch, latent]
 
-    t0 = tf.constant(0.)
-    return self.latent_sde.evolve(t0, self.t, self.dt, particles)
+    return self.latent_sde.evolve(tf.constant(0.), self.t, self.dt, particles)
 
   def evolve_fantasy(self):
-    return self.fantasy_particles.assign(
-        self.evolve(self.resample(self.fantasy_particles))
-    )
+    particles = self.resample()
+    return self.sde.evolve(tf.constant(0.), self.t, self.dt, particles)
 
   def get_loss(self, real_particles, fantasy_particles):
     # Recall that the network is x -> -E(x), the positions of real and fantasy
@@ -248,7 +237,7 @@ class FantasyParticleMonitor(Callback):
       with self.writer.as_default():
         map_structure(
             lambda x, step: tf.summary.histogram('fantasy_particles', x, step),
-            self.model.fantasy_particles,
+            fantasy_particles,
             step,
         )
 
