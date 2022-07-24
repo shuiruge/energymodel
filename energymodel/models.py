@@ -59,8 +59,8 @@ class EnergyModel:
   Implementation Details:
     - All particles are considered as tensors or nested tensors.
     - Attributes `t` and `dt` are non-trainable variables, while `T` is treated
-      as constant. It is such designed since T shall be fixed for solving an E.
-      While t and dt can be adjustable.
+      as constant. It is such designed since `T` shall be fixed for solving the
+      energy. While `t` and `dt` can be adjustable.
 
   Methods:
     evolve: Evolves the particles by the SDE.
@@ -77,9 +77,11 @@ class EnergyModel:
                use_latent=False):
     """
     Args:
-      network: The neural network for x -> -E(x), where E is the energy.
+      network: The neural network for `x -> -E(x)`, where `E` is the energy.
       resample: The fantasy particles are resampled before sampling by
-        evolving SDE. Signature () -> particles.
+        evolving SDE. Signature `(batch_size: int) -> particles`, where the
+        `particles` is tensor or nested tensor. If nested tensor, shall use
+        tuple instead of list for nesting.
       t: Time interval of SDE evolution.
       dt: Time step.
       T: The "temperature". Defaults to autmatically determined value.
@@ -115,7 +117,7 @@ class EnergyModel:
       # We use 3-sigma scale as the vector field order.
       vector_field_order = map_structure(
           lambda x: 3 * tf.math.reduce_std(x),
-          vector_field(self.resample()),
+          vector_field(self.resample(128)),
       )
       # TODO: vector_field_order may be nested, how to compute T from it?
       self.T = 0.5 * t * vector_field_order**2
@@ -153,13 +155,14 @@ class EnergyModel:
       return batch
 
     # Initialize the latent particles from the resampled fantasy_particles.
-    _, latent = self.resample()
-    particles = [batch, latent]
+    batch_size = tf.shape(batch)[0]
+    _, latent = self.resample(batch_size)
+    particles = (batch, latent,)
 
     return self.latent_sde.evolve(tf.constant(0.), self.t, self.dt, particles)
 
-  def evolve_fantasy(self):
-    particles = self.resample()
+  def evolve_fantasy(self, batch_size):
+    particles = self.resample(batch_size)
     return self.sde.evolve(tf.constant(0.), self.t, self.dt, particles)
 
   def get_loss(self, real_particles, fantasy_particles):
@@ -186,7 +189,8 @@ class EnergyModel:
 
     def train_step(batch: tf.Tensor):
       real_particles = self.evolve_real(batch)
-      fantasy_particles = self.evolve_fantasy()
+      batch_size = tf.shape(batch)[0]
+      fantasy_particles = self.evolve_fantasy(batch_size)
 
       with tf.GradientTape() as tape:
         loss = self.get_loss(real_particles, fantasy_particles)
