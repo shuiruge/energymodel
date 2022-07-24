@@ -17,25 +17,21 @@ class Callback:
   pass
 
 
-def dispose_ambient(x):
-  ambient, latent = x
-  return map_structure(tf.zeros_like, ambient), latent
-
-
 class EnergyModel:
   """The energy-model that fits empirical distributions.
 
   The energy model is a probabilistic model, characterized by an 'energy' E(x)
-  of 'particles' x, and a 'temperature' T. That is, distribution
+  of "particles" x, and a "temperature" T. That is, distribution
 
     q(x) = exp(-E(x)/T) / Z
 
-  where Z is the normalization factor.
+  where Z is the normalization factor. The E(x) has implicit parameters θ which
+  are to be trained.
 
   Given a emperical distribution p, we want to minimize the KL-divergence
   between p and q. The derivative is derived as
 
-    E_p[∂E/∂θ] - E_q[∂E/∂θ]
+    E_p[∂E/∂θ] - E_q[∂E/∂θ] = (∂/∂θ) (E_p[E] - E_q[E])
 
   where E_p[f] denotes the expectation of f(x) with x sampled from p.
 
@@ -45,7 +41,7 @@ class EnergyModel:
     q(x) is the stationary solution of the Fokker-Planck equation induced by
     the SDE dx = -∇E(x)*dt + dW, with dW ~ Normal(0, 2T*dt).
 
-  When the 'particles' are seperated as ambient and latent, say E(x) -> E(v,h)
+  When the particles are seperated as ambient and latent, say E(x) -> E(v,h)
   where v for ambient and h for latent, then the derivative of KL-divergence
   becomes
 
@@ -60,7 +56,8 @@ class EnergyModel:
     q(h|v) is the stationary solution of the Fokker-Planck equation induced by
     the SDE dh = -∇ₕE(v,h)*dt + dW and dv = 0, with dW ~ Normal(0, 2T*dt).
 
-  Notes:
+  Implementation Details:
+    - All particles are considered as tensors or nested tensors.
     - Attributes `t` and `dt` are non-trainable variables, while `T` is treated
       as constant. It is such designed since T shall be fixed for solving an E.
       While t and dt can be adjustable.
@@ -89,7 +86,7 @@ class EnergyModel:
             resample = lambda x: random_uniform(tf.shape(x))
 
         will randomly reset the fantasy particles before evolving SDE.
-      t: Time interval of SDE evolving.
+      t: Time interval of SDE evolution.
       dt: Time step.
       T: The "temperature". Defaults to autmatically determined value.
       params: The parameters. Defaults to the `network.trainable_variables`.
@@ -124,7 +121,7 @@ class EnergyModel:
       # Thus, the proper T shall balance the deterministic and the stochastic
       # terms, at least in the starting period of training. That is,
       # `f(x) t ~ (2T t)^0.5 => T ~ 0.5t f^2(x)`.
-      # We use 2-sigma scale as the vector field order.
+      # We use 3-sigma scale as the vector field order.
       vector_field_order = map_structure(
           lambda x: 3 * tf.math.reduce_std(x),
           vector_field(self.resample(self.fantasy_particles)),
@@ -214,6 +211,12 @@ class EnergyModel:
       return step
 
     return train_step
+
+
+def dispose_ambient(x):
+  """Sets the ambient component of x to zeros."""
+  ambient, latent = x
+  return map_structure(tf.zeros_like, ambient), latent
 
 
 class LossMonitor(Callback):

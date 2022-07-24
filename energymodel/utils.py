@@ -39,6 +39,7 @@ def map_structure(fn, *args, **kwargs):
 
 
 def is_nest_structure(x):
+  """Auxiliary function of `map_structure`."""
   return isinstance(x, (list, tuple))
 
 
@@ -48,9 +49,9 @@ def nest_map(fn):
 
   Examples:
   >>> fn = lambda x, y: x + y
-  >>> x = [tf.constant(1.), tf.constant(2.)]  # x is nested.
+  >>> x = [[tf.constant(0.), tf.constant(1.)], tf.constant(2.)]  # x is nested.
   >>> y = tf.constant(3.)  # y is not nested.
-  >>> nest_map(fn)(x, y)  # => [(1+3), (2+3)].
+  >>> nest_map(fn)(x, y)  # => [[(0+3), (1+3)], (2+3)].
   """
 
   def decorated(*args, **kwargs):
