@@ -63,7 +63,7 @@ class EnergyModel:
       energy. While `t` and `dt` can be adjustable.
 
   Methods:
-    evolve: Evolves the particles by the SDE.
+    __call__: Evolves the data batch.
     get_optimize_fn: Returns a function for step by step training.
   """
 
@@ -80,8 +80,7 @@ class EnergyModel:
       network: The neural network for `x -> -E(x)`, where `E` is the energy.
       resample: The fantasy particles are resampled before sampling by
         evolving SDE. Signature `(batch_size: int) -> particles`, where the
-        `particles` is tensor or nested tensor. If nested tensor, shall use
-        tuple instead of list for nesting.
+        `particles` is tensor or nested tensor.
       t: Time interval of SDE evolution.
       dt: Time step.
       T: The "temperature". Defaults to autmatically determined value.
@@ -115,11 +114,11 @@ class EnergyModel:
       # terms, at least in the starting period of training. That is,
       # `f(x) t ~ (2T t)^0.5 => T ~ 0.5t f^2(x)`.
       # We use 3-sigma scale as the vector field order.
-      vector_field_order = map_structure(
+      # If the vector field is nested tensor, then use the summation of orders.
+      vector_field_order = sum(tf.nest.flatten(map_structure(
           lambda x: 3 * tf.math.reduce_std(x),
           vector_field(self.resample(128)),
-      )
-      # TODO: vector_field_order may be nested, how to compute T from it?
+      )))
       self.T = 0.5 * t * vector_field_order**2
 
     @nest_map
@@ -139,15 +138,17 @@ class EnergyModel:
           cholesky=lambda x, t, s: dispose_ambient(cholesky(s)),
       )
 
-  def evolve(self, particles):
-    """Evolves the particles by the SDE.
+  def __call__(self, batch):
+    """Evolves the data batch.
 
     Args:
-      particles: Tensor or nested tensors.
+      batch: Tensor or nested tensors.
 
     Returns:
-      The evolution result. The same type as the `particles`.
+      The evolution result.
+      If `self.use_latent`, then the result is the ambient-latent pair.
     """
+    particles = self.evolve_real(batch)
     return self.sde.evolve(tf.constant(0.), self.t, self.dt, particles)
 
   def evolve_real(self, batch):
@@ -208,8 +209,16 @@ class EnergyModel:
 
 def dispose_ambient(x):
   """Sets the ambient component of x to zeros."""
+  if isinstance(x, tuple):
+    nest_type = lambda *args: args
+  elif isinstance(x, dict):
+    nest_type = lambda *args: {k: v for k, v in zip(x.keys(), args)}
+  else:  # list or namedtuple.
+    nest_type = type(x)
+
   ambient, latent = x
-  return map_structure(tf.zeros_like, ambient), latent
+  zeros = map_structure(tf.zeros_like, ambient)
+  return nest_type(*[zeros, latent])
 
 
 class LossMonitor(Callback):
