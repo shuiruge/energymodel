@@ -1,6 +1,26 @@
 import tensorflow as tf
 
 
+def minimum(*args):
+  """Extends the `tf.math.minimum` to arbitrarily many arguments."""
+  if len(args) < 2:
+    return args[0]
+  elif len(args) == 2:
+    return tf.math.minimum(*args)
+  else:
+    return minimum(minimum(args[0], args[1]), *args[2:])
+
+
+def maximum(*args):
+  """Extends the `tf.math.maximum` to arbitrarily many arguments."""
+  if len(args) < 2:
+    return args[0]
+  elif len(args) == 2:
+    return tf.math.maximum(*args)
+  else:
+    return maximum(maximum(args[0], args[1]), *args[2:])
+
+
 def random_uniform(size):
   return tf.random.uniform(
       shape=size, minval=-1.0, maxval=1.0, dtype='float32')

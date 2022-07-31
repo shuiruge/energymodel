@@ -1,9 +1,11 @@
+import abc
 import tensorflow as tf
-from .sde import SDE
-from .utils import map_structure, nest_map
+from typing import Callable, List
+from .sde import SDE, SDESolver
+from .utils import map_structure, nest_map, minimum
 
 
-class Callback:
+class Callback(abc.ABC):
   """Defines the abstract callback API.
 
   A callback shall implement the `__call__` method, which has arguments:
@@ -14,7 +16,14 @@ class Callback:
     gradients: List of tensors for the gradients of model parameters.
   and nothing to return.
   """
-  pass
+
+  def __call__(self,
+               step: tf.Variable,
+               real_particles: tf.Tensor,
+               fantasy_particles: tf.Tensor,
+               loss: tf.Tensor,
+               gradients: List[tf.Tensor]):
+    pass
 
 
 class EnergyModel:
@@ -68,21 +77,21 @@ class EnergyModel:
   """
 
   def __init__(self,
-               network,
-               resample,
-               t,
-               dt,
-               T=None,
-               params=None,
-               use_latent=False):
+               network: tf.Module,
+               resample: Callable[[int], tf.Tensor],
+               solver: SDESolver,
+               t: float,
+               T: float = None,
+               params: List[tf.Variable] = None,
+               use_latent: bool = False):
     """
     Args:
       network: The neural network for `x -> -E(x)`, where `E` is the energy.
       resample: The fantasy particles are resampled before sampling by
         evolving SDE. Signature `(batch_size: int) -> particles`, where the
         `particles` is tensor or nested tensor.
+      solver: SDE solver.
       t: Time interval of SDE evolution.
-      dt: Time step.
       T: The "temperature". Defaults to autmatically determined value.
       params: The parameters. Defaults to the `network.trainable_variables`.
       use_latent: If true, then the network accepts an (ambient, latent) pair
@@ -90,8 +99,8 @@ class EnergyModel:
     """
     self.network = network
     self.resample = resample
-    self.t = tf.Variable(t, trainable=False, dtype='float32')
-    self.dt = tf.Variable(dt, trainable=False, dtype='float32')
+    self.solver = solver
+    self.t = tf.convert_to_tensor(t, dtype='float32')
     self.params = params if params else network.trainable_variables
     self.use_latent = use_latent
 
@@ -113,9 +122,9 @@ class EnergyModel:
       # Thus, the proper T shall balance the deterministic and the stochastic
       # terms, at least in the starting period of training. That is,
       # `f(x) t ~ (2T t)^0.5 => T ~ 0.5t f^2(x)`.
-      # We use 3-sigma scale as the vector field order.
-      # If the vector field is nested tensor, then use the summation of orders.
-      vector_field_order = sum(tf.nest.flatten(map_structure(
+      # We use 3-sigma scale as the vector field order. If the vector field is
+      # nested tensor, then use the minimum of the orders.
+      vector_field_order = minimum(*tf.nest.flatten(map_structure(
           lambda x: 3 * tf.math.reduce_std(x),
           vector_field(self.resample(128)),
       )))
@@ -138,7 +147,7 @@ class EnergyModel:
           cholesky=lambda x, t, s: dispose_ambient(cholesky(s)),
       )
 
-  def __call__(self, batch):
+  def __call__(self, batch: tf.Tensor):
     """Evolves the data batch.
 
     Args:
@@ -149,7 +158,7 @@ class EnergyModel:
       If `self.use_latent`, then the result is the ambient-latent pair.
     """
     particles = self.evolve_real(batch)
-    return self.sde.evolve(tf.constant(0.), self.t, self.dt, particles)
+    return self.solver(self.sde, 0., self.t, particles)
 
   def evolve_real(self, batch):
     if not self.use_latent:
@@ -160,11 +169,11 @@ class EnergyModel:
     _, latent = self.resample(batch_size)
     particles = (batch, latent,)
 
-    return self.latent_sde.evolve(tf.constant(0.), self.t, self.dt, particles)
+    return self.solver(self.latent_sde, 0., self.t, particles)
 
   def evolve_fantasy(self, batch_size):
     particles = self.resample(batch_size)
-    return self.sde.evolve(tf.constant(0.), self.t, self.dt, particles)
+    return self.solver(self.sde, 0., self.t, particles)
 
   def get_loss(self, real_particles, fantasy_particles):
     # Recall that the network is x -> -E(x), the positions of real and fantasy
@@ -174,7 +183,9 @@ class EnergyModel:
         tf.reduce_mean(self.network(real_particles))
     )
 
-  def get_optimize_fn(self, optimizer, callbacks=None):
+  def get_optimize_fn(self,
+                      optimizer: tf.optimizers.Optimizer,
+                      callbacks: List[Callback] = None):
     """Returns a function for step by step training.
 
     Args:

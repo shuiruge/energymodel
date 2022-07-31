@@ -1,5 +1,7 @@
 from .sde import (
     SDE,
+    SDESolver,
+    EMSolver,
 )
 from .utils import (
     random_uniform,
