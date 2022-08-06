@@ -17,6 +17,7 @@ class Callback(abc.ABC):
   and nothing to return.
   """
 
+  @abc.abstractmethod
   def __call__(self,
                step: tf.Variable,
                real_particles: tf.Tensor,
