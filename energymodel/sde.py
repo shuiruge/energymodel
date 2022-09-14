@@ -1,6 +1,7 @@
 import abc
 import tensorflow as tf
-from .utils import map_structure, nest_map, maximum
+from typing import Callable
+from .utils import TensorLike, map_structure, nest_map, maximum
 
 
 class SDE:
@@ -17,7 +18,11 @@ class SDE:
   $K = L^T L$.
   """
 
-  def __init__(self, vector_field, cholesky):
+  def __init__(
+      self,
+      vector_field: Callable[[TensorLike, float], TensorLike],
+      cholesky: Callable[[TensorLike, float, TensorLike], TensorLike],
+  ):
     """
     Args:
       vector_field: Defines the $f(x, t)$, where x is tensor or nested tensor,
@@ -38,7 +43,7 @@ class SDESolver(abc.ABC):
                sde: SDE,
                t0: float,
                t1: float,
-               x0: tf.Tensor) -> tf.Tensor:
+               x0: TensorLike) -> TensorLike:
     """Evolves teh SDE.
 
     Args:
@@ -139,15 +144,15 @@ class EMSolver(SDESolver):
 
 
 @nest_map
-def random_seed(x, stddev):
+def random_seed(x: TensorLike, stddev: float) -> TensorLike:
   return tf.random.truncated_normal(tf.shape(x), 0., stddev)
 
 
-def infinity_norm(x):
+def infinity_norm(x: tf.Tensor) -> float:
   return tf.reduce_mean(tf.abs(x))
 
 
-def diff(x, y):
+def diff(x: TensorLike, y: TensorLike) -> float:
   _diff = map_structure(lambda x, y: infinity_norm(x - y), x, y)
   return maximum(*tf.nest.flatten(_diff))
 

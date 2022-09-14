@@ -5,6 +5,7 @@ from .sde import (
 )
 from .utils import (
     random_uniform,
+    TensorLike,
     map_structure,
     nest_map,
 )

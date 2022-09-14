@@ -2,7 +2,7 @@ import abc
 import tensorflow as tf
 from typing import Callable, List
 from .sde import SDE, SDESolver
-from .utils import map_structure, nest_map, minimum
+from .utils import TensorLike, map_structure, nest_map, minimum
 
 
 class Callback(abc.ABC):
@@ -20,8 +20,8 @@ class Callback(abc.ABC):
   @abc.abstractmethod
   def __call__(self,
                step: tf.Variable,
-               real_particles: tf.Tensor,
-               fantasy_particles: tf.Tensor,
+               real_particles: TensorLike,
+               fantasy_particles: TensorLike,
                loss: tf.Tensor,
                gradients: List[tf.Tensor]):
     pass
@@ -79,7 +79,7 @@ class EnergyModel:
 
   def __init__(self,
                network: tf.Module,
-               resample: Callable[[int], tf.Tensor],
+               resample: Callable[[int], TensorLike],
                solver: SDESolver,
                t: float,
                T: float = None,
@@ -116,20 +116,13 @@ class EnergyModel:
         return tape.gradient(y, x, unconnected_gradients='zero')
 
     # Determine self.T
-    if T is not None:
-      self.T = tf.convert_to_tensor(T, dtype='float32')
+    if T is None:
+      self.T = get_adaptive_temperature(
+          vector_field_samples=vector_field(self.resample(128)),
+          t=self.t,
+      )
     else:
-      # Suppose that the vector field persists its order during evolution.
-      # Thus, the proper T shall balance the deterministic and the stochastic
-      # terms, at least in the starting period of training. That is,
-      # `f(x) t ~ (2T t)^0.5 => T ~ 0.5t f^2(x)`.
-      # We use 3-sigma scale as the vector field order. If the vector field is
-      # nested tensor, then use the minimum of the orders.
-      vector_field_order = minimum(*tf.nest.flatten(map_structure(
-          lambda x: 3 * tf.math.reduce_std(x),
-          vector_field(self.resample(128)),
-      )))
-      self.T = 0.5 * t * vector_field_order**2
+      self.T = tf.convert_to_tensor(T, dtype='float32')
 
     @nest_map
     def cholesky(s):
@@ -148,7 +141,7 @@ class EnergyModel:
           cholesky=lambda x, t, s: dispose_ambient(cholesky(s)),
       )
 
-  def __call__(self, batch: tf.Tensor):
+  def __call__(self, batch: TensorLike):
     """Evolves the data batch.
 
     Args:
@@ -200,7 +193,7 @@ class EnergyModel:
     callbacks = [] if callbacks is None else callbacks
     step = tf.Variable(0, trainable=False, dtype='int64')
 
-    def train_step(batch: tf.Tensor):
+    def train_step(batch: TensorLike):
       real_particles = self.evolve_real(batch)
       batch_size = tf.shape(batch)[0]
       fantasy_particles = self.evolve_fantasy(batch_size)
@@ -231,6 +224,26 @@ def dispose_ambient(x):
   ambient, latent = x
   zeros = map_structure(tf.zeros_like, ambient)
   return nest_type(*[zeros, latent])
+
+
+def get_adaptive_temperature(
+    vector_field_samples: TensorLike,
+    t: float,
+) -> float:
+  """Suppose that the vector field persists its order during evolution. Thus,
+  the proper temperature T shall balance the deterministic and the stochastic
+  terms, at least in the starting period of training. That is,
+
+      f(x) t ~ (2T t)^0.5 => T ~ 0.5t f^2(x).
+
+  We use 3-sigma scale as the vector field order. If the vector field is a
+  nested tensor, then use the minimum of the orders.
+  """
+  vector_field_order = minimum(*tf.nest.flatten(map_structure(
+      lambda x: 3 * tf.math.reduce_std(x),
+      vector_field_samples,
+  )))
+  return 0.5 * t * vector_field_order**2
 
 
 class LossMonitor(Callback):

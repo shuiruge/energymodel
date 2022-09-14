@@ -26,6 +26,11 @@ def random_uniform(size):
       shape=size, minval=-1.0, maxval=1.0, dtype='float32')
 
 
+class TensorLike:
+  """Type hint for tensor or nested tensors."""
+  pass
+
+
 def map_structure(fn, *args, **kwargs):
   """Analogy to the `tf.nest.map_structure`, but not all `args` are nested."""
   nest_args = [arg for arg in args if is_nest_structure(arg)]
