@@ -328,3 +328,23 @@ class LossGradientMonitor(Callback):
               tf.identity(grad),
               step,
           )
+
+
+# TODO: Add docstring.
+class NanMonitor(Callback):
+
+  def __init__(self, check_steps: int):
+    self.check_steps = tf.constant(int(check_steps), dtype='int64')
+
+  def __call__(self, step, real_particles, fantasy_particles, loss, gradients):
+    if tf.equal(step % self.check_steps, 0):
+      check_nan(real_particles, 'real_particles')
+      check_nan(fantasy_particles, 'fantasy_particles')
+      check_nan(loss, 'loss')
+
+
+def check_nan(x, message):
+  try:
+    tf.debugging.check_numerics(x, message='')
+  except Exception as e:
+    raise ValueError('Found NaN:' + message)

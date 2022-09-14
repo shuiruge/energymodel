@@ -16,4 +16,8 @@ from .models import (
     FantasyParticleMonitor,
     VectorFieldMonitor,
     LossGradientMonitor,
+    NanMonitor,
+)
+from .lyapunov import (
+    Lyapunov,
 )
