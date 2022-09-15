@@ -12,6 +12,8 @@ from .utils import (
 from .models import (
     Callback,
     EnergyModel,
+)
+from .callbacks import (
     LossMonitor,
     FantasyParticleMonitor,
     VectorFieldMonitor,

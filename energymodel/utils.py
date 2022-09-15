@@ -22,6 +22,7 @@ def maximum(*args):
 
 
 def random_uniform(size):
+  """Sample `size` samples from Uniform(-1, 1)."""
   return tf.random.uniform(
       shape=size, minval=-1.0, maxval=1.0, dtype='float32')
 
@@ -72,3 +73,13 @@ def nest_map(fn):
     return map_structure(fn, *args, **kwargs)
 
   return decorated
+
+
+def check_nan(x, message):
+  """Raises `ValueError` if NaN or Inf is found in tensor x. Error message is
+  given by the string `message`.
+  """
+  try:
+    tf.debugging.check_numerics(x, message='')
+  except Exception as e:
+    raise ValueError('Found NaN: ' + message)
