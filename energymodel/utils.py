@@ -27,6 +27,11 @@ def random_uniform(size):
       shape=size, minval=-1.0, maxval=1.0, dtype='float32')
 
 
+class ScalarLike:
+  """Type hint for scalar, or float."""
+  pass
+
+
 class TensorLike:
   """Type hint for tensor or nested tensors."""
   pass

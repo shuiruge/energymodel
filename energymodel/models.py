@@ -2,7 +2,7 @@ import abc
 import tensorflow as tf
 from typing import Callable, List
 from .sde import SDE, SDESolver
-from .utils import TensorLike, map_structure, nest_map, minimum
+from .utils import ScalarLike, TensorLike, map_structure, nest_map, minimum
 
 
 class Callback(abc.ABC):
@@ -81,8 +81,8 @@ class EnergyModel:
                network: tf.Module,
                resample: Callable[[int], TensorLike],
                solver: SDESolver,
-               t: float,
-               T: float = None,
+               t: ScalarLike,
+               T: ScalarLike = None,
                params: List[tf.Variable] = None,
                use_latent: bool = False):
     """
@@ -228,8 +228,8 @@ def dispose_ambient(x):
 
 def get_adaptive_temperature(
     vector_field_samples: TensorLike,
-    t: float,
-) -> float:
+    t: ScalarLike,
+) -> ScalarLike:
   """Suppose that the vector field persists its order during evolution. Thus,
   the proper temperature T shall balance the deterministic and the stochastic
   terms, at least in the starting period of training. That is,

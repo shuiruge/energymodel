@@ -1,7 +1,7 @@
 import abc
 import tensorflow as tf
 from typing import Callable
-from .utils import TensorLike, map_structure, nest_map, maximum
+from .utils import ScalarLike, TensorLike, map_structure, nest_map, maximum
 
 
 class SDE:
@@ -41,8 +41,8 @@ class SDESolver(abc.ABC):
   @abc.abstractmethod
   def __call__(self,
                sde: SDE,
-               t0: float,
-               t1: float,
+               t0: ScalarLike,
+               t1: ScalarLike,
                x0: TensorLike) -> TensorLike:
     """Evolves teh SDE.
 
@@ -90,9 +90,9 @@ class EMSolver(SDESolver):
   """
 
   def __init__(self,
-               dt: float,
-               eps: float = None,
-               max_dt: float = None):
+               dt: ScalarLike,
+               eps: ScalarLike = None,
+               max_dt: ScalarLike = None):
     """
     Args:
       dt: The time step size. If use adaptive step size, this will be the
@@ -144,15 +144,15 @@ class EMSolver(SDESolver):
 
 
 @nest_map
-def random_seed(x: TensorLike, stddev: float) -> TensorLike:
+def random_seed(x: TensorLike, stddev: ScalarLike) -> TensorLike:
   return tf.random.truncated_normal(tf.shape(x), 0., stddev)
 
 
-def infinity_norm(x: tf.Tensor) -> float:
+def infinity_norm(x: tf.Tensor) -> tf.Tensor:
   return tf.reduce_mean(tf.abs(x))
 
 
-def diff(x: TensorLike, y: TensorLike) -> float:
+def diff(x: TensorLike, y: TensorLike) -> ScalarLike:
   _diff = map_structure(lambda x, y: infinity_norm(x - y), x, y)
   return maximum(*tf.nest.flatten(_diff))
 
