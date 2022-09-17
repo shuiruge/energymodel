@@ -7,3 +7,4 @@ Experiments with energy models.
 ## Experiments
 
 - [Energy model on MNIST](https://github.com/shuiruge/energymodel/blob/main/tests/Test_Energy_Model_on_MNIST.ipynb).
+- [Construct Lyapunov function](https://github.com/shuiruge/energymodel/blob/main/tests/Test_Lyapunov.ipynb).
