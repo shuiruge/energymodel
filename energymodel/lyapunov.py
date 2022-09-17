@@ -1,13 +1,22 @@
 import tensorflow as tf
 from typing import Callable
 
-from .models import get_adaptive_temperature
 from .sde import SDESolver, SDE
 from .utils import ScalarLike, TensorLike, nest_map, check_nan
 
 
-# TODO: Add docstring.
 class Lyapunov:
+  """A data generator that generates particles obeying the equilibrium
+  distribution of the stochastic differential equation (SDE):
+
+    dx = f(x) dt + dW, dW ~ Normal(0, 2T*dt).
+
+  This is for generating the training data for an energy model that fits a
+  Lyapunov function of the vector field `f`.
+
+  Methods:
+    __call__: Generates particles.
+  """
 
   def __init__(
       self,
@@ -17,6 +26,16 @@ class Lyapunov:
       t: ScalarLike,
       T: ScalarLike,
   ):
+    """
+    Args:
+      vector_field: The `f` function.
+      resample: The fantasy particles are resampled before sampling by
+        evolving SDE. Signature `(batch_size: int) -> particles`, where the
+        `particles` is tensor or nested tensor.
+      solver: SDE solver.
+      t: Time interval of SDE evolution.
+      T: The "temperature" `T`.
+    """
     self.vector_field = vector_field
     self.resample = resample
     self.solver = solver
@@ -33,6 +52,7 @@ class Lyapunov:
     )
 
   def __call__(self, batch_size: int):
+    """Generates particles."""
     particles = self.solver(
         sde=self.sde,
         t0=0.,
