@@ -1,6 +1,5 @@
 import abc
 import tensorflow as tf
-from tensorflow.python.keras import optimizers
 from typing import Callable, List
 
 from .sde import SDE, SDESolver
@@ -180,7 +179,7 @@ class EnergyModel:
     )
 
   def get_optimize_fn(self,
-                      optimizer: optimizers.Optimizer,
+                      optimizer: tf.optimizers.Optimizer,
                       callbacks: List[Callback] = None):
     """Returns a function for step by step training.
 
