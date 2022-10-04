@@ -19,3 +19,10 @@ In the current directory in terminal, run `pip install -e . -r requirements.txt`
 
 In the current directory in terminal, run `nix-shell`.
 
+If, during the experiments within Jupyter-notebook, the module `energymodel` cannot be found, then add
+
+```python
+import sys
+sys.path.append('..')  # add the path that contains the directory `energymodel.egg-info`.
+```
+
