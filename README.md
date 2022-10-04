@@ -8,3 +8,14 @@ Experiments with energy models.
 
 - [Energy model on MNIST](https://github.com/shuiruge/energymodel/blob/main/tests/Test_Energy_Model_on_MNIST.ipynb).
 - [Construct Lyapunov function](https://github.com/shuiruge/energymodel/blob/main/tests/Test_Lyapunov.ipynb).
+
+## Installation
+
+### Using `pip`
+
+In the current directory in terminal, run `pip install -e . -r requirements.txt`.
+
+### Using `nix`
+
+In the current directory in terminal, run `nix-shell`.
+

@@ -129,3 +129,9 @@ dmypy.json
 .pyre/
 
 .vscode/
+
+# nix-shell?
+_build/
+
+# TensorBoard
+logdir
