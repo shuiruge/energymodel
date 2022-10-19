@@ -6,23 +6,15 @@ Experiments with energy models.
 
 ## Experiments
 
-- [Energy model on MNIST](https://github.com/shuiruge/energymodel/blob/main/tests/Test_Energy_Model_on_MNIST.ipynb).
-- [Construct Lyapunov function](https://github.com/shuiruge/energymodel/blob/main/tests/Test_Lyapunov.ipynb).
+- [Energy model on MNIST](https://github.com/shuiruge/energymodel/blob/main/tests/Energy_Model_on_MNIST.ipynb).
+- [Construct Lyapunov function](https://github.com/shuiruge/energymodel/blob/main/tests/Lyapunov.ipynb).
 
 ## Installation
 
 ### Using `pip`
 
-In the current directory in terminal, run `pip install -e . -r requirements.txt`.
+In the current directory in terminal, run `pip install . -r requirements.txt`.
 
 ### Using `nix`
 
 In the current directory in terminal, run `nix-shell`.
-
-If, during the experiments within Jupyter-notebook, the module `energymodel` cannot be found, then add
-
-```python
-import sys
-sys.path.append('..')  # add the path that contains the directory `energymodel.egg-info`.
-```
-

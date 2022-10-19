@@ -15,13 +15,16 @@ mkShell {
     virtualenv
   ];
   shellHook = ''
+    # Setup TensorFlow environment.
     export LD_LIBRARY_PATH=${pkgs.stdenv.cc.cc.lib}/lib:${pkgs.cudaPackages_10_1.cudatoolkit}/lib:${pkgs.cudaPackages_10_1.cudatoolkit}/lib:${pkgs.cudaPackages_10_1.cudatoolkit.lib}/lib:$LD_LIBRARY_PATH
     alias pip="PIP_PREFIX='$(pwd)/_build/pip_packages' TMPDIR='$HOME' \pip"
     export PYTHONPATH="$(pwd)/_build/pip_packages/lib/python3.7/site-packages:$PYTHONPATH"
     export PATH="$(pwd)/_build/pip_packages/bin:$PATH"
     unset SOURCE_DATE_EPOCH
+    # Setup local virtual environment.
     virtualenv venv
     source venv/bin/activate
-    pip install -e . -r requirements.txt
+    # Pip install.
+    pip install . -r requirements.txt
   '';
 }
