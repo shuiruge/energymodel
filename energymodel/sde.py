@@ -1,8 +1,9 @@
 import abc
-import tensorflow as tf
 from typing import Callable
 
-from .utils import ScalarLike, TensorLike, map_structure, nest_map, maximum
+import tensorflow as tf
+
+from .utils import ScalarLike, TensorLike, map_structure, maximum, nest_map
 
 
 class SDE:
