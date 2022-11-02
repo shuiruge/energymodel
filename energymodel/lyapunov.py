@@ -1,8 +1,9 @@
-import tensorflow as tf
 from typing import Callable
 
-from .sde import SDESolver, SDE
-from .utils import ScalarLike, TensorLike, nest_map, check_nan
+import tensorflow as tf
+
+from .sde import SDE, SDESolver
+from .utils import ScalarLike, TensorLike, check_nan, nest_map
 
 
 class Lyapunov:

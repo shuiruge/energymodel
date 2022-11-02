@@ -1,9 +1,10 @@
 import abc
-import tensorflow as tf
 from typing import Callable, List
 
+import tensorflow as tf
+
 from .sde import SDE, SDESolver
-from .utils import ScalarLike, TensorLike, map_structure, nest_map, minimum
+from .utils import ScalarLike, TensorLike, map_structure, minimum, nest_map
 
 
 class Callback(abc.ABC):

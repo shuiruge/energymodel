@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 from .models import Callback, EnergyModel
-from .utils import map_structure, check_nan
+from .utils import check_nan, map_structure
 
 
 class LossMonitor(Callback):
