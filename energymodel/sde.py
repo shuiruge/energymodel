@@ -22,8 +22,8 @@ class SDE:
 
   def __init__(
       self,
-      vector_field: Callable[[TensorLike, float], TensorLike],
-      cholesky: Callable[[TensorLike, float, TensorLike], TensorLike],
+      vector_field: Callable[[TensorLike, ScalarLike], TensorLike],
+      cholesky: Callable[[TensorLike, ScalarLike, TensorLike], TensorLike],
   ):
     """
     Args:
