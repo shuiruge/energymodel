@@ -5,7 +5,7 @@ NAME = 'energymodel'
 AUTHOR = 'shuiruge'
 AUTHOR_EMAIL = 'shuiruge@whu.edu.cn'
 URL = 'https://github.com/shuiruge/energymodel'
-VERSION = '0.2.0'
+VERSION = '0.3.0'
 
 
 setup(

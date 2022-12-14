@@ -1,13 +1,14 @@
 # energymodel
 
-[![GitHub Stars](https://img.shields.io/github/stars/shuiruge/energymodel.svg)](https://github.com/shuiruge/energymodel) [![GitHub Issues](https://img.shields.io/github/issues/shuiruge/energymodel.svg)](https://github.com/shuiruge/energymodel/issues) [![Current Version](https://img.shields.io/badge/version-0.2.0-green.svg)](https://github.com/shuiruge/energymodel)
+[![GitHub Stars](https://img.shields.io/github/stars/shuiruge/energymodel.svg)](https://github.com/shuiruge/energymodel) [![GitHub Issues](https://img.shields.io/github/issues/shuiruge/energymodel.svg)](https://github.com/shuiruge/energymodel/issues) [![Current Version](https://img.shields.io/badge/version-0.3.0-green.svg)](https://github.com/shuiruge/energymodel)
 
 Experiments with energy models.
 
 ## Experiments
 
-- [Energy model on MNIST](https://github.com/shuiruge/energymodel/blob/main/tests/Energy_Model_on_MNIST.ipynb).
-- [Construct Lyapunov function](https://github.com/shuiruge/energymodel/blob/main/tests/Lyapunov.ipynb).
+- [Energy model on MNIST](https://github.com/shuiruge/energymodel/blob/main/experiments/Energy_Model_on_MNIST.ipynb).
+- [Construct Lyapunov function](https://github.com/shuiruge/energymodel/blob/main/experiments/Lyapunov.ipynb).
+- [Try to construct Lyapunov function for Lorenz dynamics](https://github.com/shuiruge/energymodel/blob/main/experiments/Lyapunov_Lorentz.ipynb).
 
 ## Installation
 
