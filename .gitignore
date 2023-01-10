@@ -131,7 +131,7 @@ dmypy.json
 .vscode/
 
 # nix-shell?
-_build/
+.build/
 
 # TensorBoard
 logdir
