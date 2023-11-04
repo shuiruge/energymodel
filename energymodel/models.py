@@ -53,8 +53,10 @@ class EnergyModel:
     q is the stationary solution of the Fokker-Planck equation induced by the
     SDE dx = -∇E(x)*dt + dW, with dW ~ Normal(0, 2T*dt).
 
-  To prove this theorm, we compute (d/dt)KL(p|q). By plugging in the Fokker-
-  Planck equation induced by the SDE, which is
+  To prove this theorem, letting p(x,t) the distribution of an enssemble of
+  particles obeying the SDE, we compute (d/dt)KL(p(.,t)|q), where KL indicates
+  the Kullback–Leibler divergence. By plugging into the Fokker-Planck equation
+  induced by the SDE, which is
 
     (∂p/∂t)(x,t) = ∇[p(x,t) ∇E(x)] + T Δp(x,t),
 
