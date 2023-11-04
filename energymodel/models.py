@@ -50,8 +50,17 @@ class EnergyModel:
   To sample from q, we employ stochastic differential equatoins (SDE), based
   on a theorem:
 
-    q(x) is the stationary solution of the Fokker-Planck equation induced by
-    the SDE dx = -∇E(x)*dt + dW, with dW ~ Normal(0, 2T*dt).
+    q is the stationary solution of the Fokker-Planck equation induced by the
+    SDE dx = -∇E(x)*dt + dW, with dW ~ Normal(0, 2T*dt).
+
+  To prove this theorm, we compute (d/dt)KL(p|q). By plugging in the Fokker-
+  Planck equation induced by the SDE, which is
+
+    (∂p/∂t)(x,t) = ∇[p(x,t) ∇E(x)] + T Δp(x,t),
+
+  followed by integral by part, we arrive at a negative definite result,
+  meaning that KL(p|q) will keep decreasing until p = q. That is, q is the
+  stationary solution of the Fokker-Planck equation.
 
   When the particles are seperated as ambient and latent, say E(x) -> E(v,h)
   where v for ambient and h for latent, then the derivative of KL-divergence
