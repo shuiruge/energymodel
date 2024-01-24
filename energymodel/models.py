@@ -2,6 +2,7 @@ import abc
 from typing import Callable, List
 
 import tensorflow as tf
+from tensorflow.python import keras
 
 from .sde import SDE, SDESolver
 from .utils import ScalarLike, TensorLike, map_structure, minimum, nest_map
@@ -191,12 +192,12 @@ class EnergyModel:
     )
 
   def get_optimize_fn(self,
-                      optimizer: tf.optimizers.Optimizer,
+                      optimizer: keras.optimizers.Optimizer,
                       callbacks: List[Callback] = None):
     """Returns a function for step by step training.
 
     Args:
-      optimizer: An `optimizers.Optimizer` object.
+      optimizer: An `keras.optimizers.Optimizer` object.
       callbacks: List of `Callback`s.
 
     Returns:
