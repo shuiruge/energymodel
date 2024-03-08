@@ -2,7 +2,7 @@
 
 [![GitHub Stars](https://img.shields.io/github/stars/shuiruge/energymodel.svg)](https://github.com/shuiruge/energymodel) [![GitHub Issues](https://img.shields.io/github/issues/shuiruge/energymodel.svg)](https://github.com/shuiruge/energymodel/issues) [![Current Version](https://img.shields.io/badge/version-0.3.0-green.svg)](https://github.com/shuiruge/energymodel)
 
-Experiments with energy models.
+Experiments with energy-based models.
 
 ## Experiments
 
